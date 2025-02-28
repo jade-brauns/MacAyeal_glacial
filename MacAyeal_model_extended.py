@@ -3,6 +3,7 @@ import numpy as np
 import math as m
 import matplotlib.gridspec as gridspec
 from RK4_func import *
+import pickle
 
 # time steps defined here
 # total time = nt * nloop * dt
@@ -54,12 +55,24 @@ plot_alpha  = []
 R_ep = 4
 R_lp_array = [3, 0.8, 0.6]
 
+# for doing more than 3 simulations uncomment the following and adjustments for this are marked throughout the code with !!! and *
+'''#!!! uncomment
+R_lp_array = np.linspace(0.1, 4, 40)
+q1_array = np.linspace(10.1, 20, 100)
 
+p_array = np.zeros((len(R_lp_array), len(q1_array))) # array to store n where T_x = nT_Q, T_x is the period of the response (ice vol) and T_Q is the solar forcing period
 
-
-# for plotting purposes, the extra loop is added to make save multiple sims for plotting as subplots on the same fig
 for i in range(0, len(R_lp_array)):
     R_lp = R_lp_array[i]
+    for j in range(0, q1_array):
+        q1 = q1_array[j]
+
+'''
+
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #this section of code needs to be indented
+# for plotting purposes, the extra loop is added to make save multiple sims for plotting as subplots on the same fig
+for i in range(0, len(R_lp_array)): # !!! This should be commented out
+    R_lp = R_lp_array[i] # !!! This should be commented out
     ramptime = 1 # ramping time is 100 kyr
     # create arrays to store the time series
     R_time = np.zeros(nt) # time array for plotting the time series of R
@@ -142,9 +155,49 @@ for i in range(0, len(R_lp_array)):
     plot_r.append(R_time)
     plot_alpha.append(alphaarray)
     plot_q.append(qarray)
+
+    '''     # !!! uncomment 
+    # find the frequency locking of the lp response # This section is only needed for replicating Fig. 3 *
+    threshold = 0.001
+    found_period = 0
+    matches = 0
     
+    for ratio in range(1, 10):
+        for i_period in range(1, 4):
+            set1 = xx[(len(xx)-(i_period*82*ratio)):(len(xx)-(i_period-1)*82*ratio)]
+            set2 = xx[(len(xx)-(i_period+1)*82*ratio):(len(xx)-(i_period*82*ratio))]
+            diff = abs(np.sum(set1)-np.sum(set2))
+            if diff<threshold:
+                matches += 1
+        if matches>2:
+            if found_period==0:
+                found_period = 1
+                p_array[i,j] = ratio
+                iterator = round((4000-250)/(ratio*41))
+                for oit in range(1, iterator):
+                    set1 = xx[(len(xx)-(oit*82*ratio)):(len(xx)-(oit-1)*82*ratio)]
+                    set2 = xx[(len(xx)-(oit+1)*82*ratio):(len(xx)-(oit*82*ratio))]
+                    diff = abs(np.sum(set1)-np.sum(set2))
+    if p_array[i,j] == 0:
+        p_array[i,j] = 10
+        print("10")
+    if overtipflag==0:
+        p_array[i,j] = 0
+    if abs(np.mean(xx[2000:-1]))>8:
+        p_array[i,j] = 0
+        print("Linear Response, the system has not tipped")
+    ''' #!!!
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! end of section that needs to be indented
 # End of loop
 
+''' # !!! this section is only needed for *
+parray_df = pd.DataFrame(p_array) # convert array of n to a dataframe
+parray_df.index = R_lp_array
+parray_df.columns = q_array
+
+with open('fileloc/MacAyeal_Frequencylock_Ratio.pkl', 'wb') as f:
+    pickle.dump(parray_df, f)
+'''
 
 # ALL PLOTTING BELOW
 
